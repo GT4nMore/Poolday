@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Poolday</title>
+  <meta name="description" content="Poolday, a Nazi Zombies: Portable map by Oisín Mc Gloin, playable in the browser.">
+  <link rel="icon" href="data:,">
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    body { font-family: "Courier New", monospace; color: #e8ecf1; }
+    canvas.emscripten { border: 0 none; width: 100%; height: 100%; padding: 0; margin: 0; display: block; }
+    #intro { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #171717; z-index: 2; padding: 0 16px; text-align: center; }
+    #intro h1 { margin: 0; font-size: 32px; font-weight: normal; color: #509e29; }
+    #intro .sub { color: #878787; font-size: 14px; }
+    #intro .keys { color: #c8ced6; font-size: 13px; line-height: 1.7; }
+    #intro .keys b { color: #298b9e; font-weight: normal; }
+    #play { margin-top: 8px; background: none; border: 1px solid #298b9e; color: #fff; font: inherit; font-size: 16px; padding: 10px 26px; cursor: pointer; }
+    #play:hover { background: rgba(41, 139, 158, 0.15); }
+    #status { color: #878787; font-size: 13px; min-height: 1.2em; }
+    #bar { width: min(360px, 80vw); height: 3px; background: rgba(255,255,255,0.12); display: none; }
+    #fill { width: 0; height: 100%; background: #298b9e; }
+    #back { position: fixed; right: 12px; top: 10px; font-size: 12px; color: #c8ced6; z-index: 3; }
+    #back a { color: #c8ced6; }
+    .credit { color: #5d6670; font-size: 12px; }
+    .credit a { color: #5d6670; }
+  </style>
+</head>
+<body>
+  <div id="intro">
+    <h1>.Poolday {</h1>
+    <div class="sub">/* Nazi Zombies: Portable map &middot; by GT4nMore */</div>
+    <div class="keys">
+      <b>W A S D</b> move &middot; <b>Left click</b> shoot &middot; <b>Right click</b> aim &middot; <b>R</b> reload<br>
+      <b>E</b> use / buy &middot; <b>G</b> grenade &middot; <b>V</b> knife &middot; <b>Scroll</b> switch weapon<br>
+      <b>Space</b> jump &middot; <b>Shift</b> sprint &middot; <b>Esc</b> menu
+    </div>
+    <button id="play" type="button">Click to play</button>
+    <div id="bar"><div id="fill"></div></div>
+    <div id="status"></div>
+    <div class="credit">Runs on <a href="https://github.com/nzp-team/nzportable">NZ:P</a> by the NZP Team, powered by <a href="https://fteqw.org">FTEQW</a>.</div>
+  </div>
+  <div id="back"><a href="/">oisinmg.ie</a></div>
+  <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
+  <script>
+    var statusEl = document.getElementById('status');
+    var bar = document.getElementById('bar'), fill = document.getElementById('fill');
+    var Module = {
+      // the official NZP web data, minus the stock maps, plus Poolday
+      files: {
+        'default.fmf': 'default.fmf',
+        'nzp/game.pk3': 'nzp/game.pk3',
+        'nzp/progs.pk3': 'nzp/progs.pk3',
+        'nzp/poolday.pk3': 'nzp/poolday.pk3'
+      },
+      arguments: ['+map', 'nz_Poolday'],
+      print: function (msg) { console.log(msg); },
+      printErr: function (msg) { console.log(msg); },
+      canvas: document.getElementById('canvas'),
+      setStatus: function (text) {
+        var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        if (m) {
+          bar.style.display = 'block';
+          fill.style.width = (parseFloat(m[2]) / parseFloat(m[4]) * 100) + '%';
+          text = m[1];
+        }
+        statusEl.textContent = text;
+      },
+      totalDependencies: 0,
+      monitorRunDependencies: function (left) {
+        this.totalDependencies = Math.max(this.totalDependencies, left);
+        Module.setStatus(left ? 'Downloading (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'Starting…');
+      },
+      postRun: [function () {
+        if (Module.sched === undefined) {
+          Module.setStatus('The game could not start. Try reloading, or a different browser.');
+          return;
+        }
+        document.getElementById('intro').remove();
+      }]
+    };
+
+    function begin() {
+      if (Module.began) return;
+      Module.began = true;
+      document.getElementById('play').remove();
+      Module.setStatus('Downloading… (about 66 MB)');
+      var s = document.createElement('script');
+      s.src = 'ftewebgl.js';
+      s.onerror = function () { Module.setStatus('Could not download the game engine.'); };
+      document.head.appendChild(s);
+    }
+    document.getElementById('play').addEventListener('click', begin);
+    if (location.search.indexOf('autostart') >= 0) begin();
+  </script>
+</body>
+</html>
